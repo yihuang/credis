@@ -1,12 +1,13 @@
 from gevent.event import AsyncResult
 
-cdef class Pool:
+cdef class ResourcePool:
     '''
     simple pool, used for gevent, there is not true concurrency.
     '''
     cdef public list _pool
     cdef public object ctor
     cdef public tuple args
+    cdef public dict kwargs
 
     cdef public int max_count
     cdef public int alloc_count
@@ -14,9 +15,10 @@ cdef class Pool:
 
     cdef list _waiters
 
-    def __cinit__(self, max_count, ctor, *args):
+    def __cinit__(self, max_count, ctor, *args, **kwargs):
         self.ctor = ctor
         self.args = args
+        self.kwargs = kwargs
 
         self.max_count = max_count
         self.alloc_count = 0
@@ -35,7 +37,7 @@ cdef class Pool:
                 return evt.get()
 
             # allocate new resource
-            res = self.ctor(*self.args)
+            res = self.ctor(*self.args, **self.kwargs)
             self.alloc_count += 1
             self.used_count += 1
         else:

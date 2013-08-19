@@ -1,5 +1,5 @@
 import gevent
-from credis.geventpool import Pool
+from credis.geventpool import ResourcePool
 
 counter = 0
 def get_resource():
@@ -12,8 +12,9 @@ def worker(pool):
     gevent.sleep(0.05)
     pool.release(res)
 
-pool = Pool(10, get_resource)
+pool = ResourcePool(10, get_resource)
 threads = [gevent.spawn(worker, pool) for i in xrange(10000)]
 gevent.joinall(threads)
 assert pool.alloc_count <= pool.max_count
 assert pool.used_count == 0
+assert counter == 10
