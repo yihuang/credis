@@ -7,7 +7,7 @@ ext_modules = [ Extension("credis.base", ["credis/base.c"])
               ]
 
 setup(
-    name = 'redis-cy',
+    name = 'credis',
     packages=['credis'],
     ext_modules = ext_modules,
 )
