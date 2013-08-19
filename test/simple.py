@@ -13,5 +13,12 @@ pipe = []
 pipe.append(('SET', 1, 2))
 pipe.append(('GET', 1))
 conn.send_pipeline(pipe)
-assert conn.read_response() == 'OK'
-assert conn.read_response() == '2'
+assert conn.read_n_response(len(pipe)) == ('OK', '2')
+
+pipe = []
+pipe.append( ('SET', 1, 1) )
+pipe.append( ('INCR', 1) )
+pipe.append( ('INCRBY', 1, 1) )
+pipe.append( ('GET', 1) )
+conn.send_pipeline(pipe)
+assert conn.read_n_response(len(pipe)) == ('OK', 2, 3, '3')
