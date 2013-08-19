@@ -53,3 +53,9 @@ cdef class ResourcePool:
             self.used_count -= 1
             self._pool.append(item)
         assert self.used_count >= 0, 'impossible[3]'
+
+    def __enter__(self):
+        return self.acquire()
+
+    def __exit__(self, type, value, traceback):
+        self.release(value)
