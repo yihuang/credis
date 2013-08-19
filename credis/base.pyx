@@ -199,7 +199,7 @@ cdef class Connection(object):
             self.disconnect()
             raise
 
-    def read_n_response(self, int n):
+    cpdef read_n_response(self, int n):
         cdef result = PyTuple_New(n)
         cdef i
         cdef object o
@@ -244,13 +244,21 @@ cdef class Connection(object):
         self._pack_command_list(output, args)
         return b''.join(output)
 
-    cdef _pack_pipeline_command(self, stack):
+    cdef _pack_pipeline_command(self, cmds):
         "Pack a series of arguments into a value Redis command"
         cdef list output = []
         cdef tuple args
-        for args in stack:
+        for args in cmds:
             self._pack_command_list(output, args)
         return b''.join(output)
 
-    def send_pipeline(self, stack):
-        self.send_packed_command(self._pack_pipeline_command(stack))
+    cpdef send_pipeline(self, cmds):
+        self.send_packed_command(self._pack_pipeline_command(cmds))
+
+    def execute(self, tuple args):
+        self.send_command(args)
+        return self.read_response()
+
+    def execute_pipeline(self, cmds):
+        self.send_pipeline(cmds)
+        return self.read_n_response(len(cmds))
