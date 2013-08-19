@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 from credis import Connection
 
-conn = Connection(host=u'127.0.0.1')
+conn = Connection()
 
 conn.send_command(('SET', 1, 1))
 assert conn.read_response() == 'OK'

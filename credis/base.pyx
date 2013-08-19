@@ -57,8 +57,8 @@ cdef class Connection(object):
     cdef bint decode_responses
     cdef object path
 
-    cdef object _sock
-    cdef object _reader
+    cdef public object _sock
+    cdef public object _reader
 
     def __init__(self, host='localhost', port=6379, db=0, password=None,
                  socket_timeout=None, encoding='utf-8', path=None,
@@ -202,8 +202,8 @@ cdef class Connection(object):
         "Return a bytestring representation of the value"
         if isinstance(value, bytes):
             return value
-        if isinstance(value, float):
-            return repr(value)
+        if isinstance(value, int):
+            return int_to_decimal_string(<int>value)
         if isinstance(value, unicode):
             if self.encoding is None and self.encoding_errors is None:
                 return (<unicode>value).encode('utf-8')
