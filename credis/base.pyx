@@ -3,8 +3,9 @@ cdef bytes SYM_DOLLAR = b'$'
 cdef bytes SYM_CRLF = b'\r\n'
 cdef bytes SYM_LF = b'\n'
 
-cdef extern from "Python.h":
-    object PyObject_Str(object v)
+from cpython.object cimport PyObject_Str
+from cpython.tuple cimport PyTuple_New, PyTuple_SetItem
+from cpython.ref cimport Py_INCREF
 
 DEF CHAR_BIT = 8
 
@@ -197,6 +198,17 @@ cdef class Connection(object):
         except:
             self.disconnect()
             raise
+
+    def read_n_response(self, int n):
+        cdef result = PyTuple_New(n)
+        cdef i
+        cdef object o
+        for i in range(n):
+            o = self.read_response()
+            Py_INCREF(o)
+            PyTuple_SetItem(result, i, o)
+        Py_INCREF(result)
+        return result
 
     cdef bytes _encode(self, value):
         "Return a bytestring representation of the value"
