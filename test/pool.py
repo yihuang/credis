@@ -28,14 +28,22 @@ def worker_exception(pool):
 
 def worker_using_with(pool):
     try:
-        with pool as res:
+        with pool.ctx() as res:
             gevent.sleep(0.05)
-            raise TestException('bad worker')
+            raise TestException('bad worker1')
+    except TestException:
+        pass
+
+def worker_using_with2(pool):
+    try:
+        with pool.ctx() as res:
+            gevent.sleep(0.05)
+            raise TestException('bad worker2')
     except TestException:
         pass
 
 def random_worker():
-    return random.choice([worker_normal, worker_exception, worker_using_with])
+    return random.choice([worker_normal, worker_exception, worker_using_with, worker_using_with2])
 
 pool = ResourcePool(10, get_resource)
 threads = [gevent.spawn(random_worker(), pool) for i in xrange(1000)]

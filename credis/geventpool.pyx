@@ -1,4 +1,5 @@
 from gevent.event import AsyncResult
+from contextlib import contextmanager
 
 cdef class ResourcePool:
     '''
@@ -27,7 +28,7 @@ cdef class ResourcePool:
         self._pool = []
         self._waiters = []
 
-    def acquire(self):
+    cpdef acquire(self):
         try:
             res = self._pool.pop()
         except IndexError:
@@ -44,9 +45,11 @@ cdef class ResourcePool:
             self.used_count += 1
         assert self.alloc_count - self.used_count == len(self._pool), 'impossible[1]'
         assert self.used_count <= self.alloc_count, 'impossible[2]'
+        assert res is not None, 'impossible[4]'
         return res
 
-    def release(self, item):
+    cpdef release(self, item):
+        assert item is not None, 'invalid item'
         if len(self._waiters) > 0:
             self._waiters.pop().set(item)
         else:
@@ -54,8 +57,13 @@ cdef class ResourcePool:
             self._pool.append(item)
         assert self.used_count >= 0, 'impossible[3]'
 
-    def __enter__(self):
-        return self.acquire()
+    def ctx(self):
+        return pool_context(self)
 
-    def __exit__(self, type, value, traceback):
-        self.release(value)
+@contextmanager
+def pool_context(pool):
+    res = pool.acquire()
+    try:
+        yield res
+    finally:
+        pool.release(res)
