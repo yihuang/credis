@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 import gevent
 import random
 from credis.geventpool import ResourcePool

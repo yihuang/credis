@@ -244,7 +244,7 @@ cdef class Connection(object):
         self._pack_command_list(output, args)
         return b''.join(output)
 
-    cdef _pack_pipeline_command(self, cmds):
+    cdef _pack_pipeline_command(self, tuple cmds):
         "Pack a series of arguments into a value Redis command"
         cdef list output = []
         cdef tuple args
@@ -252,13 +252,13 @@ cdef class Connection(object):
             self._pack_command_list(output, args)
         return b''.join(output)
 
-    cpdef send_pipeline(self, cmds):
+    cpdef send_pipeline(self, tuple cmds):
         self.send_packed_command(self._pack_pipeline_command(cmds))
 
-    def execute(self, tuple args):
+    def execute(self, *args):
         self.send_command(args)
         return self.read_response()
 
-    def execute_pipeline(self, cmds):
+    def execute_pipeline(self, *cmds):
         self.send_pipeline(cmds)
         return self.read_n_response(len(cmds))

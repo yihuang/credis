@@ -9,15 +9,15 @@ rds.connect()
 
 def bench_simple():
     'the operation for benchmark'
-    rds.execute(('SET', 'test', 100))
+    rds.execute('SET', 'test', 100)
 
 def bench_pipeline():
-    pipe = [ ('SET', 1, 1),
-             ('INCR', 1),
-             ('INCRBY', 1, 1),
-             ('GET', 1),
-           ]
-    rds.execute_pipeline(pipe)
+    rds.execute_pipeline(
+            ('SET', 1, 1),
+            ('INCR', 1),
+            ('INCRBY', 1, 1),
+            ('GET', 1),
+        )
 
 bench = bench_pipeline
 
