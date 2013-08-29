@@ -257,7 +257,10 @@ cdef class Connection(object):
 
     def execute(self, *args):
         self.send_command(args)
-        return self.read_response()
+        reply = self.read_response()
+        if isinstance(reply, RedisReplyError):
+            raise reply
+        return reply
 
     def execute_pipeline(self, *cmds):
         self.send_pipeline(cmds)
