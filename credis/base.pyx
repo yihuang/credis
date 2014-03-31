@@ -61,7 +61,7 @@ cdef class Connection(object):
     cdef public object _sock
     cdef public object _reader
 
-    def __init__(self, host='localhost', port=6379, db=0, password=None,
+    def __init__(self, host='localhost', port=6379, db=None, password=None,
                  socket_timeout=None, encoding='utf-8', path=None,
                  encoding_errors='strict', decode_responses=False,
                  ):
