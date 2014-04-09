@@ -169,7 +169,7 @@ cdef class Connection(object):
             self.disconnect()
             raise
 
-    cpdef send_command(self, tuple args):
+    cpdef send_command(self, args):
         "Pack and send a command to the Redis server"
         self.send_packed_command(self._pack_command(args))
 
@@ -225,7 +225,7 @@ cdef class Connection(object):
         if not isinstance(value, basestring):
             return PyObject_Str(value)
 
-    cdef _pack_command_list(self, list output, tuple args):
+    cdef _pack_command_list(self, list output, args):
         cdef bytes enc_value
         output.append(SYM_STAR)
         output.append(int_to_decimal_string(len(args)))
@@ -238,21 +238,21 @@ cdef class Connection(object):
             output.append(enc_value)
             output.append(SYM_CRLF)
 
-    cdef _pack_command(self, tuple args):
+    cdef _pack_command(self, args):
         "Pack a series of arguments into a value Redis command"
         cdef list output = []
         self._pack_command_list(output, args)
         return b''.join(output)
 
-    cdef _pack_pipeline_command(self, tuple cmds):
+    cdef _pack_pipeline_command(self, cmds):
         "Pack a series of arguments into a value Redis command"
         cdef list output = []
-        cdef tuple args
+        cdef object args
         for args in cmds:
             self._pack_command_list(output, args)
         return b''.join(output)
 
-    cpdef send_pipeline(self, tuple cmds):
+    cpdef send_pipeline(self, cmds):
         self.send_packed_command(self._pack_pipeline_command(cmds))
 
     def execute(self, *args):
