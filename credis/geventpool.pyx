@@ -60,6 +60,14 @@ cdef class ResourcePool:
     def ctx(self):
         return pool_context(self)
 
+    def execute(self, *args):
+        with self.ctx() as conn:
+            return conn.execute(*args)
+
+    def execute_pipeline(self, *args):
+        with self.ctx() as conn:
+            return conn.execute_pipeline(*args)
+
 @contextmanager
 def pool_context(pool):
     res = pool.acquire()
