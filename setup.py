@@ -8,6 +8,7 @@ ext_modules = [ Extension("credis.base", ["credis/base.c"])
 
 setup(
     name = 'credis',
+    version = '1.0',
     packages=['credis'],
     ext_modules = ext_modules,
 )
