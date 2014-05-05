@@ -30,8 +30,17 @@ cdef object int_to_decimal_string(Py_ssize_t n):
         p[0] = '-'
     return p[:(bufend-p)]
 
+import sys
 import socket
-import hiredis
+from cStringIO import StringIO as BytesIO
+
+try:
+    import hiredis
+except ImportError:
+    USE_HIREDIS = False
+    hiredis = None
+else:
+    USE_HIREDIS = True
 
 class RedisProtocolError(Exception):
     pass
@@ -44,6 +53,108 @@ class ConnectionError(Exception):
 
 class AuthenticationError(Exception):
     pass
+
+class SocketBuffer(object):
+    def __init__(self, socket, socket_read_size):
+        self._sock = socket
+        self.socket_read_size = socket_read_size
+        self._buffer = BytesIO()
+        # number of bytes written to the buffer from the socket
+        self.bytes_written = 0
+        # number of bytes read from the buffer
+        self.bytes_read = 0
+
+    @property
+    def length(self):
+        return self.bytes_written - self.bytes_read
+
+    def _read_from_socket(self, length=None):
+        socket_read_size = self.socket_read_size
+        buf = self._buffer
+        buf.seek(self.bytes_written)
+        marker = 0
+
+        try:
+            while True:
+                data = self._sock.recv(socket_read_size)
+                # an empty string indicates the server shutdown the socket
+                if isinstance(data, str) and len(data) == 0:
+                    raise socket.error("Connection closed by remote server.")
+                buf.write(data)
+                data_length = len(data)
+                self.bytes_written += data_length
+                marker += data_length
+
+                if length is not None and length > marker:
+                    continue
+                break
+        except (socket.error, socket.timeout):
+            e = sys.exc_info()[1]
+            raise ConnectionError("Error while reading from socket: %s" %
+                                  (e.args,))
+
+    def read(self, length):
+        length = length + 2  # make sure to read the \r\n terminator
+        # make sure we've read enough data from the socket
+        if length > self.length:
+            self._read_from_socket(length - self.length)
+
+        self._buffer.seek(self.bytes_read)
+        data = self._buffer.read(length)
+        self.bytes_read += len(data)
+
+        # purge the buffer when we've consumed it all so it doesn't
+        # grow forever
+        if self.bytes_read == self.bytes_written:
+            self.purge()
+
+        return data[:-2]
+
+    def readline(self):
+        buf = self._buffer
+        buf.seek(self.bytes_read)
+        data = buf.readline()
+        while not data.endswith(SYM_CRLF):
+            # there's more data in the socket that we need
+            self._read_from_socket()
+            buf.seek(self.bytes_read)
+            data = buf.readline()
+
+        self.bytes_read += len(data)
+
+        # purge the buffer when we've consumed it all so it doesn't
+        # grow forever
+        if self.bytes_read == self.bytes_written:
+            self.purge()
+
+        return data[:-2]
+
+    def purge(self):
+        self._buffer.seek(0)
+        self._buffer.truncate()
+        self.bytes_written = 0
+        self.bytes_read = 0
+
+    def close(self):
+        self.purge()
+        self._buffer.close()
+        self._buffer = None
+        self._sock = None
+
+EXCEPTION_CLASSES = {
+    'ERR': RedisReplyError,
+    'EXECABORT': RedisReplyError,
+    'LOADING': RedisReplyError,
+    'NOSCRIPT': RedisReplyError,
+}
+
+def parse_error(response):
+    "Parse an error response"
+    error_code = response.split(' ')[0]
+    if error_code in EXCEPTION_CLASSES:
+        response = response[len(error_code) + 1:]
+        return EXCEPTION_CLASSES[error_code](response)
+    return RedisReplyError(response)
 
 cdef class Connection(object):
     "Manages TCP communication to and from a Redis server"
@@ -58,8 +169,10 @@ cdef class Connection(object):
     cdef bint decode_responses
     cdef object path
 
+    cdef public int socket_read_size
     cdef public object _sock
     cdef public object _reader
+    cdef public object _buffer
 
     def __init__(self, host='localhost', port=6379, db=None, password=None,
                  socket_timeout=None, encoding='utf-8', path=None,
@@ -80,6 +193,7 @@ cdef class Connection(object):
             self.encoding_errors = None # default to strict
         self.decode_responses = decode_responses
 
+        self.socket_read_size = 4096
         self._sock = None
         self._reader = None
 
@@ -100,13 +214,17 @@ cdef class Connection(object):
             raise ConnectionError(self._error_message(e))
 
         self._sock = sock
-        kwargs = {
-            'protocolError': RedisProtocolError,
-            'replyError': RedisReplyError,
-        }
-        if self.decode_responses:
-            kwargs['encoding'] = self.encoding or 'utf-8'
-        self._reader = hiredis.Reader(**kwargs)
+
+        if USE_HIREDIS:
+            kwargs = {
+                'protocolError': RedisProtocolError,
+                'replyError': RedisReplyError,
+            }
+            if self.decode_responses:
+                kwargs['encoding'] = self.encoding or 'utf-8'
+            self._reader = hiredis.Reader(**kwargs)
+        else:
+            self._buffer = SocketBuffer(self._sock, self.socket_read_size)
 
         self._init_connection()
 
@@ -182,7 +300,7 @@ cdef class Connection(object):
                 raise ConnectionError("Error while reading from socket: %s" %
                                       (e.args,))
             if not buffer:
-                raise RedisReplyError("Socket closed on remote end")
+                raise ConnectionError("Socket closed on remote end")
             self._reader.feed(buffer)
             # proactively, but not conclusively, check if more data is in the
             # buffer. if the data received doesn't end with \n, there's more.
@@ -191,10 +309,59 @@ cdef class Connection(object):
             response = self._reader.gets()
         return response
 
+    def _pure_read_response(self):
+        response = self._buffer.readline()
+        if not response:
+            raise ConnectionError("Socket closed on remote end")
+
+        byte, response = response[0], response[1:]
+
+        if byte not in ('-', '+', ':', '$', '*'):
+            raise RedisProtocolError("Protocol Error: %s, %s" %
+                                  (byte, response))
+
+        # server returned an error
+        if byte == '-':
+            #response = nativestr(response)
+            error = parse_error(response)
+            # if the error is a ConnectionError, raise immediately so the user
+            # is notified
+            if isinstance(error, ConnectionError):
+                raise error
+            # otherwise, we're dealing with a ResponseError that might belong
+            # inside a pipeline response. the connection's read_response()
+            # and/or the pipeline's execute() will raise this error if
+            # necessary, so just return the exception instance here.
+            return error
+        # single value
+        elif byte == '+':
+            pass
+        # int value
+        elif byte == ':':
+            response = long(response)
+        # bulk response
+        elif byte == '$':
+            length = int(response)
+            if length == -1:
+                return None
+            response = self._buffer.read(length)
+        # multi-bulk response
+        elif byte == '*':
+            length = int(response)
+            if length == -1:
+                return None
+            response = [self._pure_read_response() for i in xrange(length)]
+        if isinstance(response, bytes) and self.encoding:
+            response = response.decode(self.encoding)
+        return response
+
     cpdef read_response(self):
         "Read the response from a previously sent command"
         try:
-            return self._read_response()
+            if USE_HIREDIS:
+                return self._read_response()
+            else:
+                return self._pure_read_response()
         except:
             self.disconnect()
             raise
