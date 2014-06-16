@@ -207,7 +207,6 @@ cdef class Connection(object):
             o = self.read_response()
             Py_INCREF(o)
             PyTuple_SetItem(result, i, o)
-        Py_INCREF(result)
         return result
 
     cdef bytes _encode(self, value):
