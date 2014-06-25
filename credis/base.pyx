@@ -164,7 +164,7 @@ cdef class Connection(object):
         except socket.error as e:
             self.disconnect()
             raise ConnectionError("Error while writing to socket. %s." %
-                                  (e.args))
+                                  (e.args,))
         except:
             self.disconnect()
             raise
