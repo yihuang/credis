@@ -11,7 +11,9 @@ DEF CHAR_BIT = 8
 
 cdef object int_to_decimal_string(Py_ssize_t n):
     # sizeof(long)*CHAR_BIT/3+6
-    cdef char buf[32], *p, *bufend
+    cdef char buf[32]
+    cdef char *p
+    cdef char *bufend
     cdef unsigned long absn
     cdef char c = '0'
     p = bufend = buf + sizeof(buf)
