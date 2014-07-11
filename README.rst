@@ -27,6 +27,8 @@ execute pipelined commands
 connection pool for gevent
 --------------------------
 
+.. code-block:: python
+
     >>> from credis.geventpool import ResourcePool
     >>> pool = ResourcePool(32, Connection, host='127.0.0.1', port=6379)
     >>> with pool.ctx() as conn:
