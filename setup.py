@@ -8,14 +8,14 @@ ext_modules = [ Extension("credis.base", ["credis/base.c"])
 
 setup(
     name = 'credis',
-    version = '1.0.2',
+    version = '1.0.3',
     packages=['credis'],
     ext_modules = ext_modules,
     author='huangyi',
     author_email='yi.codeplayer@gmail.com',
     url = 'https://github.com/yihuang/credis',
     description = 'high performance redis client implemented with cython',
-    long_description=open('README.rst').read(),
+    #long_description=open('README.rst').read(),
     install_requires = [
         'hiredis >= 0.1',
     ],
