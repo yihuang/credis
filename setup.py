@@ -15,7 +15,7 @@ setup(
     author_email='yi.codeplayer@gmail.com',
     url = 'https://github.com/yihuang/credis',
     description = 'high performance redis client implemented with cython',
-    #long_description=open('README.rst').read(),
+    long_description=open('README.rst').read(),
     install_requires = [
         'hiredis >= 0.1',
     ],
