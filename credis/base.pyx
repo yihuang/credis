@@ -211,7 +211,7 @@ cdef class Connection(object):
             PyTuple_SetItem(result, i, o)
         return result
 
-    cdef bytes _encode(self, value):
+    cpdef bytes _encode(self, value):
         "Return a bytestring representation of the value"
         if isinstance(value, bytes):
             return value
@@ -223,8 +223,7 @@ cdef class Connection(object):
             else:
                 return (<unicode>value).encode(self.encoding is not None or 'utf-8',
                                                self.encoding_errors is not None or 'strict')
-        if not isinstance(value, basestring):
-            return PyObject_Str(value)
+        return PyObject_Str(value)
 
     cdef _pack_command_list(self, list output, args):
         cdef bytes enc_value
