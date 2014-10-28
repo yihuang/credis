@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import sys
 import patch_socket
 import timeit, cProfile
 
@@ -26,6 +27,9 @@ patch_socket.run_with_recording(rds._sock, bench)
 
 timeit.main(['-s', 'from __main__ import patch_socket, rds, bench',
             '-n', '10000', 'patch_socket.run_with_replay(rds._sock, bench)'])
+
+if sys.version_info[0] >= 3:
+    xrange = range
 
 cProfile.run('for i in xrange(10000):patch_socket.run_with_replay(rds._sock, bench)',
              sort='time')

@@ -237,9 +237,10 @@ cdef class Connection(object):
         if isinstance(value, bytes):
             return value
 
-        n = PyLong_AsLongAndOverflow(value, &overflow)
-        if overflow == 0:
-            return int_to_decimal_string(n)
+        if isinstance(value, int):
+            n = PyLong_AsLongAndOverflow(value, &overflow)
+            if overflow == 0:
+                return int_to_decimal_string(n)
 
         if isinstance(value, float):
             return simple_bytes(repr(value))
