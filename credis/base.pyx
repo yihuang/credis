@@ -3,13 +3,15 @@ cdef bytes SYM_DOLLAR = b'$'
 cdef bytes SYM_CRLF = b'\r\n'
 cdef bytes SYM_LF = b'\n'
 
-from cpython.object cimport PyObject_Str
+cdef extern from "Python.h":
+    long PyLong_AsLongAndOverflow(object, int *overflow) except? -1
+
 from cpython.tuple cimport PyTuple_New, PyTuple_SetItem
 from cpython.ref cimport Py_INCREF
 
 DEF CHAR_BIT = 8
 
-cdef object int_to_decimal_string(Py_ssize_t n):
+cdef object int_to_decimal_string(long n):
     # sizeof(long)*CHAR_BIT/3+6
     cdef char buf[32]
     cdef char *p
@@ -31,6 +33,18 @@ cdef object int_to_decimal_string(Py_ssize_t n):
         p -= 1
         p[0] = '-'
     return p[:(bufend-p)]
+
+cdef bytes simple_bytes(s):
+    if isinstance(s, unicode):
+        return (<unicode>s).encode('latin-1')
+    elif isinstance(s, bytes):
+        return s
+    else:
+        s = str(s)
+        if isinstance(s, unicode):
+            return (<unicode>s).encode('latin-1')
+        else:
+            return s
 
 import socket
 import hiredis
@@ -157,12 +171,14 @@ cdef class Connection(object):
             pass
         self._sock = None
 
-    cpdef send_packed_command(self, command):
+    cpdef send_packed_command(self, commands):
         "Send an already packed command to the Redis server"
         if not self._sock:
             self.connect()
+        cdef object sendall = self._sock.sendall
         try:
-            self._sock.sendall(command)
+            for command in commands:
+                sendall(command)
         except socket.error as e:
             self.disconnect()
             raise ConnectionError("Error while writing to socket. %s." %
@@ -177,9 +193,11 @@ cdef class Connection(object):
 
     cdef _read_response(self):
         response = self._reader.gets()
+
+        cdef object recv = self._sock.recv
         while response is False:
             try:
-                buffer = self._sock.recv(4096)
+                buffer = recv(4096)
             except (socket.error, socket.timeout) as e:
                 raise ConnectionError("Error while reading from socket: %s" %
                                       (e.args,))
@@ -203,7 +221,7 @@ cdef class Connection(object):
 
     cpdef read_n_response(self, int n):
         cdef result = PyTuple_New(n)
-        cdef i
+        cdef int i
         cdef object o
         for i in range(n):
             o = self.read_response()
@@ -213,44 +231,91 @@ cdef class Connection(object):
 
     cpdef bytes _encode(self, value):
         "Return a bytestring representation of the value"
+        cdef int overflow = 0
+        cdef long n = 0
+
         if isinstance(value, bytes):
             return value
-        if isinstance(value, int):
-            return int_to_decimal_string(<int>value)
+
+        n = PyLong_AsLongAndOverflow(value, &overflow)
+        if overflow == 0:
+            return int_to_decimal_string(n)
+
+        if isinstance(value, float):
+            return simple_bytes(repr(value))
+
+        value = str(value)
+
         if isinstance(value, unicode):
             if self.encoding is None and self.encoding_errors is None:
                 return (<unicode>value).encode('utf-8')
             else:
                 return (<unicode>value).encode(self.encoding is not None or 'utf-8',
                                                self.encoding_errors is not None or 'strict')
-        return PyObject_Str(value)
+        return value
 
-    cdef _pack_command_list(self, list output, args):
+    cdef _pack_command_list(self, args):
         cdef bytes enc_value
-        output.append(SYM_STAR)
-        output.append(int_to_decimal_string(len(args)))
-        output.append(SYM_CRLF)
+        cdef list chunks = []
+        cdef list chunk = [SYM_STAR, int_to_decimal_string(len(args)), SYM_CRLF]
+        cdef int chunk_size = 0
+        for s in chunk:
+            chunk_size += len(s)
+
         for value in args:
             enc_value = self._encode(value)
-            output.append(SYM_DOLLAR)
-            output.append(int_to_decimal_string(len(enc_value)))
-            output.append(SYM_CRLF)
-            output.append(enc_value)
-            output.append(SYM_CRLF)
+
+            if chunk_size > 6000 or len(enc_value) > 6000:
+                chunks.append(b''.join(chunk))
+                chunk = []
+                chunk_size = 0
+
+            chunk.append(SYM_DOLLAR)
+            chunk_size += len(SYM_DOLLAR)
+
+            s = int_to_decimal_string(len(enc_value))
+            chunk.append(s)
+            chunk_size += len(s)
+
+            chunk.append(SYM_CRLF)
+            chunk_size += len(SYM_CRLF)
+
+            chunk.append(enc_value)
+            chunk_size += len(enc_value)
+
+            chunk.append(SYM_CRLF)
+            chunk_size += len(SYM_CRLF)
+
+        if chunk:
+            chunks.append(b''.join(chunk))
+
+        return chunks
 
     cdef _pack_command(self, args):
         "Pack a series of arguments into a value Redis command"
-        cdef list output = []
-        self._pack_command_list(output, args)
-        return b''.join(output)
+        return self._pack_command_list(args)
 
     cdef _pack_pipeline_command(self, cmds):
         "Pack a series of arguments into a value Redis command"
-        cdef list output = []
+        cdef list chunks = []
+        cdef list chunk = []
+        cdef int chunk_size = 0
         cdef object args
+
         for args in cmds:
-            self._pack_command_list(output, args)
-        return b''.join(output)
+            for item in self._pack_command_list(args):
+                chunk.append(item)
+                chunk_size += len(item)
+
+            if chunk_size > 6000:
+                chunks.append(b''.join(chunk))
+                chunk = []
+                chunk_size = 0
+
+        if chunk_size > 0:
+            chunks.append(b''.join(chunk))
+
+        return chunks
 
     cpdef send_pipeline(self, cmds):
         self.send_packed_command(self._pack_pipeline_command(cmds))
