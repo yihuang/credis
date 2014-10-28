@@ -25,6 +25,14 @@ class socket(object):
     def connect(self, *args, **kwargs):
         return self._ss.connect(*args, **kwargs)
 
+    def setsockopt(self, *args):
+        if not self.replaying:
+            return self._ss.setsockopt(*args)
+
+    def shutdown(self, *args):
+        if not self.replaying:
+            return self._ss.shutdown(*args)
+
     def send(self, buf):
         if self.replaying:
             return len(buf)
@@ -44,6 +52,16 @@ class socket(object):
         if self.recording:
             self.records.append(buf)
         return buf
+
+    def recv_into(self, buf):
+        if self.replaying:
+            s = self.replay_records.pop()
+            buf[:len(s)] = s
+            return len(s)
+        ret = self._ss.recv_into(buf)
+        if self.recording:
+            self.records.append(buf[:ret])
+        return ret
 
     def close(self):
         return self._ss.close()
