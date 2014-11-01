@@ -245,7 +245,8 @@ cdef class Connection(object):
         if isinstance(value, float):
             return simple_bytes(repr(value))
 
-        value = str(value)
+        if not isinstance(value, unicode):
+            value = str(value)
 
         if isinstance(value, unicode):
             if self.encoding is None and self.encoding_errors is None:
