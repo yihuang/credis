@@ -202,7 +202,7 @@ cdef class Connection(object):
                 raise ConnectionError("Error while reading from socket: %s" %
                                       (e.args,))
             if not buffer:
-                raise RedisReplyError("Socket closed on remote end")
+                raise ConnectionError("Socket closed on remote end")
             self._reader.feed(buffer)
             # proactively, but not conclusively, check if more data is in the
             # buffer. if the data received doesn't end with \n, there's more.
@@ -325,7 +325,7 @@ cdef class Connection(object):
     def execute(self, *args):
         self.send_command(args)
         reply = self.read_response()
-        if isinstance(reply, RedisReplyError):
+        if isinstance(reply, Exception):
             raise reply
         return reply
 
