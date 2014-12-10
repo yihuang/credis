@@ -9,6 +9,7 @@ cdef class ResourcePool:
     cdef public object ctor
     cdef public tuple args
     cdef public dict kwargs
+    cdef public str name
 
     cdef public int max_count
     cdef public int alloc_count
@@ -19,6 +20,7 @@ cdef class ResourcePool:
     def __cinit__(self, max_count, ctor, *args, **kwargs):
         self.ctor = ctor
         self.args = args
+        self.name = kwargs.pop('name', None)
         self.kwargs = kwargs
 
         self.max_count = max_count
