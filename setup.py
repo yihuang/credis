@@ -22,7 +22,7 @@ else:
 
 setup(
     name='credis',
-    version='1.0.3',
+    version='1.0.4',
     packages=['credis'],
     ext_modules=ext_modules,
     cmdclass=cmdclass,
