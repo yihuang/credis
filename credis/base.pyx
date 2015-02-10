@@ -3,11 +3,23 @@ cdef bytes SYM_DOLLAR = b'$'
 cdef bytes SYM_CRLF = b'\r\n'
 cdef bytes SYM_LF = b'\n'
 
-cdef extern from "Python.h":
-    long PyLong_AsLongAndOverflow(object, int *overflow) except? -1
-
 from cpython.tuple cimport PyTuple_New, PyTuple_SetItem
 from cpython.ref cimport Py_INCREF
+from cpython.long cimport PyLong_AsLong
+from cpython.exc cimport PyErr_ExceptionMatches, PyErr_Occurred, PyErr_Clear
+
+# portable with python2.6
+cdef long PyLong_AsLongAndOverflow(object o, int *overflow) except? -1:
+    cdef long ret
+    try:
+        ret = PyLong_AsLong(o)
+    except OverflowError:
+        overflow[0] = 1
+        return -1
+
+    overflow[0] = 0
+    return ret
+
 
 DEF CHAR_BIT = 8
 
