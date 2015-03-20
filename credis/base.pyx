@@ -102,6 +102,7 @@ cdef class Connection(object):
             self.encoding = encoding
         else:
             self.encoding = None # default to use utf-8 encoding
+        self.path = path
         if encoding_errors != 'strict':
             self.encoding_errors = encoding_errors
         else:
