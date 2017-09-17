@@ -164,13 +164,13 @@ cdef class Connection(object):
         # if a password is specified, authenticate
         if self.password is not None:
             self.send_command(('AUTH', self.password))
-            if <basestring>self.read_response() != 'OK':
+            if self.read_response().decode() != 'OK':
                 raise AuthenticationError('Invalid Password')
 
         # if a database is specified, switch to it
         if self.db is not None:
             self.send_command(('SELECT', self.db))
-            if <basestring>self.read_response() != 'OK':
+            if self.read_response().decode() != 'OK':
                 raise ConnectionError('Invalid Database')
 
     cpdef disconnect(self):

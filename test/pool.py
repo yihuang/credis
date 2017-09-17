@@ -47,7 +47,7 @@ def random_worker():
     return random.choice([worker_normal, worker_exception, worker_using_with, worker_using_with2])
 
 pool = ResourcePool(10, get_resource)
-threads = [gevent.spawn(random_worker(), pool) for i in xrange(1000)]
+threads = [gevent.spawn(random_worker(), pool) for i in range(1000)]
 gevent.joinall(threads)
 assert pool.alloc_count <= pool.max_count
 assert pool.used_count == 0
