@@ -166,6 +166,7 @@ cdef class Connection(object):
             self.send_command(('AUTH', self.password))
             reply = self.read_response()
             if isinstance(reply, Exception):
+                self.disconnect()
                 raise reply
             if reply.decode() != 'OK':
                 self.disconnect()
@@ -176,6 +177,7 @@ cdef class Connection(object):
             self.send_command(('SELECT', self.db))
             reply = self.read_response()
             if isinstance(reply, Exception):
+                self.disconnect()
                 raise reply
             if reply.decode() != 'OK':
                 self.disconnect()
