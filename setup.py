@@ -11,7 +11,8 @@ try:
 except ImportError:
     have_cython = False
 
-if have_cython:
+#if have_cython:
+if False:
     ext_modules = [Extension("credis.base", ["credis/base.pyx"]),
                    Extension("credis.geventpool", ["credis/geventpool.pyx"]),
                    ]
@@ -25,7 +26,7 @@ else:
 
 setup(
     name='credis',
-    version='1.0.7',
+    version='1.0.8',
     packages=['credis'],
     ext_modules=ext_modules,
     cmdclass=cmdclass,
