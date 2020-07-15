@@ -143,11 +143,12 @@ cdef class Connection(object):
         "Create a TCP/UNIX socket connection"
         if self.path is not None:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(self.socket_timeout)
             sock.connect(self.path)
         else:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(self.socket_timeout)
             sock.connect((self.host, self.port))
-        sock.settimeout(self.socket_timeout)
         return sock
 
     cdef _error_message(self, exception):
