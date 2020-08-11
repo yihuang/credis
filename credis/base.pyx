@@ -102,6 +102,7 @@ cdef class Connection(object):
             self.encoding = encoding
         else:
             self.encoding = None # default to use utf-8 encoding
+        self.path = path
         if encoding_errors != 'strict':
             self.encoding_errors = encoding_errors
         else:
@@ -142,11 +143,12 @@ cdef class Connection(object):
         "Create a TCP/UNIX socket connection"
         if self.path is not None:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+            sock.settimeout(self.socket_timeout)
             sock.connect(self.path)
         else:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            sock.settimeout(self.socket_timeout)
             sock.connect((self.host, self.port))
-        sock.settimeout(self.socket_timeout)
         return sock
 
     cdef _error_message(self, exception):
@@ -163,13 +165,23 @@ cdef class Connection(object):
         # if a password is specified, authenticate
         if self.password is not None:
             self.send_command(('AUTH', self.password))
-            if <basestring>self.read_response() != 'OK':
+            reply = self.read_response()
+            if isinstance(reply, Exception):
+                self.disconnect()
+                raise reply
+            if reply.decode() != 'OK':
+                self.disconnect()
                 raise AuthenticationError('Invalid Password')
 
         # if a database is specified, switch to it
         if self.db is not None:
             self.send_command(('SELECT', self.db))
-            if <basestring>self.read_response() != 'OK':
+            reply = self.read_response()
+            if isinstance(reply, Exception):
+                self.disconnect()
+                raise reply
+            if reply.decode() != 'OK':
+                self.disconnect()
                 raise ConnectionError('Invalid Database')
 
     cpdef disconnect(self):

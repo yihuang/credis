@@ -1,28 +1,20 @@
 #!/usr/bin/env python
-from distutils.core import setup
+try:
+    from setuptools import setup
+except ImportError:
+    from distutils.core import setup
 from distutils.extension import Extension
 
-try:
-    from Cython.Distutils import build_ext
-    have_cython = True
-except ImportError:
-    have_cython = False
+from Cython.Distutils import build_ext
 
-if have_cython:
-    ext_modules = [Extension("credis.base", ["credis/base.pyx"]),
-                   Extension("credis.geventpool", ["credis/geventpool.pyx"]),
-                   ]
-    cmdclass = {'build_ext': build_ext}
-else:
-    cmdclass = {}
-    ext_modules = [Extension("credis.base", ["credis/base.c"]),
-                   Extension("credis.geventpool", ["credis/geventpool.c"]),
-                   ]
-
+ext_modules = [Extension("credis.base", ["credis/base.pyx"]),
+               Extension("credis.geventpool", ["credis/geventpool.pyx"]),
+               ]
+cmdclass = {'build_ext': build_ext}
 
 setup(
     name='credis',
-    version='1.0.5',
+    version='1.0.9',
     packages=['credis'],
     ext_modules=ext_modules,
     cmdclass=cmdclass,
