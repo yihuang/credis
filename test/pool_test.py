@@ -3,7 +3,6 @@ import gevent
 import random
 from credis.geventpool import ResourcePool
 import unittest
-import typing
 
 
 class CRedisException(Exception):
@@ -11,10 +10,10 @@ class CRedisException(Exception):
 
 
 class TestPool(unittest.TestCase):
-    def setUp(self) -> None:
+    def setUp(self):
         self.counter = 0
 
-    def test_pool(self) -> None:
+    def test_pool(self):
         pool = ResourcePool(10, self.get_resource)
         threads = [gevent.spawn(self.random_worker(), pool) for _ in range(1000)]
         gevent.joinall(threads)
@@ -22,7 +21,7 @@ class TestPool(unittest.TestCase):
         assert pool.used_count == 0
         assert self.counter == 10
 
-    def random_worker(self) -> typing.Callable:
+    def random_worker(self):
         return random.choice(
             [
                 self.worker_normal,

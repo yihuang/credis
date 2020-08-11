@@ -28,6 +28,7 @@ setup(
         "Intended Audience :: Developers",
         "Programming Language :: Python",
         "Topic :: Database",
+        "Python :: 2",
         "Python :: 3",
         "Python :: 3.8",
         "Python :: 3.9",
