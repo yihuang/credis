@@ -2,7 +2,8 @@ from socket import socket as _socket
 
 
 class socket(object):
-    'patch socket for testing'
+    """patch socket for testing"""
+
     def __init__(self, *args, **kwargs):
         self._ss = _socket(*args, **kwargs)
         self.records = []
@@ -56,7 +57,7 @@ class socket(object):
     def recv_into(self, buf):
         if self.replaying:
             s = self.replay_records.pop()
-            buf[:len(s)] = s
+            buf[: len(s)] = s
             return len(s)
         ret = self._ss.recv_into(buf)
         if self.recording:
@@ -66,12 +67,16 @@ class socket(object):
     def close(self):
         return self._ss.close()
 
-import socket as socketmodule
+
+import socket as socketmodule  # pylint: disable-E305
+
 socketmodule.socket = socket
+
 
 def run_with_recording(sock, func):
     sock.start_record()
     func()
+
 
 def run_with_replay(sock, func):
     sock.start_replay()
