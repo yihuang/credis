@@ -2,9 +2,9 @@ from gevent.event import AsyncResult
 from contextlib import contextmanager
 
 cdef class ResourcePool:
-    '''
+    """
     simple pool, used for gevent, there is not true concurrency.
-    '''
+    """
     cdef public list _pool
     cdef public object ctor
     cdef public tuple args

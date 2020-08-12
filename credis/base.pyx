@@ -74,7 +74,7 @@ class AuthenticationError(Exception):
     pass
 
 cdef class Connection(object):
-    "Manages TCP communication to and from a Redis server"
+    """Manages TCP communication to and from a Redis server"""
 
     cdef object host
     cdef object port
@@ -119,7 +119,7 @@ cdef class Connection(object):
             pass
 
     def connect(self):
-        "Connects to the Redis server if not already connected"
+        """Connects to the Redis server if not already connected"""
         if self._sock:
             return
 
@@ -140,7 +140,7 @@ cdef class Connection(object):
         self._init_connection()
 
     cdef _connect(self):
-        "Create a TCP/UNIX socket connection"
+        """Create a TCP/UNIX socket connection"""
         if self.path is not None:
             sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
             sock.settimeout(self.socket_timeout)
@@ -160,7 +160,7 @@ cdef class Connection(object):
             (address, exception.args)
 
     cdef _init_connection(self):
-        "Initialize the connection, authenticate and select a database"
+        """Initialize the connection, authenticate and select a database"""
 
         # if a password is specified, authenticate
         if self.password is not None:
@@ -185,7 +185,7 @@ cdef class Connection(object):
                 raise ConnectionError('Invalid Database')
 
     cpdef disconnect(self):
-        "Disconnects from the Redis server"
+        """Disconnects from the Redis server"""
         self._reader = None
         if self._sock is None:
             return
@@ -196,7 +196,7 @@ cdef class Connection(object):
         self._sock = None
 
     cpdef send_packed_command(self, commands):
-        "Send an already packed command to the Redis server"
+        """Send an already packed command to the Redis server"""
         if not self._sock:
             self.connect()
         cdef object sendall = self._sock.sendall
@@ -212,7 +212,7 @@ cdef class Connection(object):
             raise
 
     cpdef send_command(self, args):
-        "Pack and send a command to the Redis server"
+        """Pack and send a command to the Redis server"""
         self.send_packed_command(self._pack_command(args))
 
     cdef _read_response(self):
@@ -236,7 +236,7 @@ cdef class Connection(object):
         return response
 
     cpdef read_response(self):
-        "Read the response from a previously sent command"
+        """Read the response from a previously sent command"""
         try:
             return self._read_response()
         except:
@@ -254,7 +254,7 @@ cdef class Connection(object):
         return result
 
     cpdef bytes _encode(self, value):
-        "Return a bytestring representation of the value"
+        """Return a bytestring representation of the value"""
         cdef int overflow = 0
         cdef long n = 0
 
@@ -318,11 +318,11 @@ cdef class Connection(object):
         return chunks
 
     cdef _pack_command(self, args):
-        "Pack a series of arguments into a value Redis command"
+        """Pack a series of arguments into a value Redis command"""
         return self._pack_command_list(args)
 
     cdef _pack_pipeline_command(self, cmds):
-        "Pack a series of arguments into a value Redis command"
+        """Pack a series of arguments into a value Redis command"""
         cdef list chunks = []
         cdef list chunk = []
         cdef int chunk_size = 0
