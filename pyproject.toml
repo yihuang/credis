@@ -1,0 +1,28 @@
+[tool.poetry]
+name = "credis"
+version = "2.0.0"
+description = "high performance redis client implemented with cython"
+authors = ["yihuang <yi.codeplayer@gmail.com>"]
+license = "MIT"
+readme = 'README.rst'
+repository = "https://github.com/yihuang/credis"
+build = "build.py"
+classifiers=[
+    "Development Status :: 6 - Mature",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python",
+    "Programming Language :: Cython",
+    "Topic :: Database"
+]
+
+[tool.poetry.dependencies]
+python = "^3.7"
+hiredis = "^1.1.0"
+
+[tool.poetry.dev-dependencies]
+Cython = "^0.29.21"
+pytest = "^6.1.0"
+
+[build-system]
+requires = ["poetry-core>=1.0.0a5", "Cython>=0.29.21", "setuptools>=50.3"]
+build-backend = "poetry.core.masonry.api"
