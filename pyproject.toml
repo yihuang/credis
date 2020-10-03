@@ -20,9 +20,8 @@ python = "^3.7"
 hiredis = "^1.1.0"
 
 [tool.poetry.dev-dependencies]
-Cython = "^0.29.21"
 pytest = "^6.1.0"
 
 [build-system]
-requires = ["poetry-core>=1.0.0a5", "Cython>=0.29.21", "setuptools>=50.3"]
+requires = ["poetry-core>=1.0.0", "cython", "setuptools>=50.3"]
 build-backend = "poetry.core.masonry.api"
