@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "credis"
-version = "2.0.1"
+version = "2.0.2"
 description = "high performance redis client implemented with cython"
 authors = ["yihuang <yi.codeplayer@gmail.com>"]
 license = "MIT"
