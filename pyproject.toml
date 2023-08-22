@@ -6,7 +6,6 @@ authors = ["yihuang <yi.codeplayer@gmail.com>"]
 license = "MIT"
 readme = 'README.rst'
 repository = "https://github.com/yihuang/credis"
-build = "build.py"
 classifiers=[
     "Development Status :: 6 - Mature",
     "Intended Audience :: Developers",
@@ -15,9 +14,13 @@ classifiers=[
     "Topic :: Database"
 ]
 
+[tool.poetry.build]
+script = "build.py"
+generate-setup-file = true
+
 [tool.poetry.dependencies]
 python = "^3.7"
-hiredis = "^1.1.0"
+hiredis = "^2.2.3"
 
 [tool.poetry.dev-dependencies]
 pytest = "^6.1.0"
